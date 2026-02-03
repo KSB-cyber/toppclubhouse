@@ -31,7 +31,7 @@ const FacilityRequest: React.FC = () => {
     attendees: 1,
   });
 
-  const facilityTypes = ['Meeting Room', 'Conference Room', 'Training Room', 'Recreation Area', 'Event Hall'];
+  const facilityTypes = ['Dining hall', 'Basketball court', 'Swimming pool', 'Tennis court', 'Volleyball court'];
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
     const hour = i.toString().padStart(2, '0');
     return `${hour}:00`;

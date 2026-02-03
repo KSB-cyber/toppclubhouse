@@ -26,10 +26,21 @@ const ManageMenu: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   
+  // Generate food images based on meal type
+  const generateFoodImage = (mealType: MealType) => {
+    const images = {
+      breakfast: '/BREAKFAST.jpeg',
+      lunch: '/LUNCH.jpeg',
+      supper: '/SUPPER.jpeg'
+    };
+    return images[mealType];
+  };
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     meal_type: 'lunch' as MealType,
+    price: '',
     is_available: true,
     is_vegetarian: false,
     is_vegan: false,
@@ -56,6 +67,8 @@ const ManageMenu: React.FC = () => {
         name: data.name,
         description: data.description,
         meal_type: data.meal_type,
+        price: parseFloat(data.price) || 0,
+        image_url: generateFoodImage(data.meal_type),
         is_available: data.is_available,
         is_vegetarian: data.is_vegetarian,
         is_vegan: data.is_vegan,
@@ -79,6 +92,8 @@ const ManageMenu: React.FC = () => {
         name: data.name,
         description: data.description,
         meal_type: data.meal_type,
+        price: parseFloat(data.price) || 0,
+        image_url: generateFoodImage(data.meal_type),
         is_available: data.is_available,
         is_vegetarian: data.is_vegetarian,
         is_vegan: data.is_vegan,
@@ -115,6 +130,7 @@ const ManageMenu: React.FC = () => {
       name: '',
       description: '',
       meal_type: 'lunch',
+      price: '',
       is_available: true,
       is_vegetarian: false,
       is_vegan: false,
@@ -130,6 +146,7 @@ const ManageMenu: React.FC = () => {
       name: item.name,
       description: item.description || '',
       meal_type: item.meal_type,
+      price: item.price?.toString() || '',
       is_available: item.is_available ?? true,
       is_vegetarian: item.is_vegetarian ?? false,
       is_vegan: item.is_vegan ?? false,
@@ -200,6 +217,18 @@ const ManageMenu: React.FC = () => {
                 <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
               </div>
               <div>
+                <Label htmlFor="price">Price (GH₵)</Label>
+                <Input 
+                  id="price" 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  value={formData.price} 
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })} 
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
                 <Label htmlFor="allergens">Allergens (comma-separated)</Label>
                 <Input id="allergens" value={formData.allergens} onChange={(e) => setFormData({ ...formData, allergens: e.target.value })} placeholder="Nuts, Dairy, Gluten" />
               </div>
@@ -239,6 +268,7 @@ const ManageMenu: React.FC = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Meal Type</TableHead>
+                <TableHead>Price</TableHead>
                 <TableHead>Dietary</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -249,6 +279,7 @@ const ManageMenu: React.FC = () => {
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
                   <TableCell className="capitalize">{item.meal_type}</TableCell>
+                  <TableCell className="font-medium">GH₵ {item.price?.toFixed(2) || '0.00'}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       {item.is_vegetarian && <Badge variant="outline" className="text-green-600">V</Badge>}
@@ -274,7 +305,7 @@ const ManageMenu: React.FC = () => {
               ))}
               {menuItems?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No menu items found. Add your first one!
                   </TableCell>
                 </TableRow>
