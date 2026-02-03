@@ -4,10 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import BackButton from '@/components/ui/back-button';
-import { Building2, UtensilsCrossed, CalendarDays, Clock } from 'lucide-react';
+import { Building2, UtensilsCrossed, CalendarDays, Clock, Download } from 'lucide-react';
 import { format } from 'date-fns';
 
 const statusColors: Record<string, string> = {
@@ -18,6 +19,108 @@ const statusColors: Record<string, string> = {
 
 const MyBookings: React.FC = () => {
   const { user } = useAuth();
+
+  // Function to download receipt
+  const downloadReceipt = async (order: any) => {
+    try {
+      // Get order items
+      const { data: orderItems } = await supabase
+        .from('food_order_items')
+        .select(`
+          *,
+          menu_item:menu_items(name, price)
+        `)
+        .eq('order_id', order.id);
+
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', user!.id)
+        .single();
+
+      // Generate receipt HTML
+      const receiptHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Food Order Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+            .order-info { margin-bottom: 20px; }
+            .items { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+            .items th, .items td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .items th { background-color: #f2f2f2; }
+            .total { text-align: right; font-size: 18px; font-weight: bold; }
+            .footer { text-align: center; margin-top: 30px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>TOPP Club House</h1>
+            <h2>Food Order Receipt</h2>
+          </div>
+          
+          <div class="order-info">
+            <p><strong>Order ID:</strong> ${order.id.slice(0, 8)}</p>
+            <p><strong>Customer:</strong> ${profile?.full_name}</p>
+            <p><strong>Email:</strong> ${profile?.email}</p>
+            <p><strong>Order Date:</strong> ${format(new Date(order.order_date), 'PPP')}</p>
+            <p><strong>Delivery Time:</strong> ${format(new Date(order.delivery_time), 'PPP p')}</p>
+            <p><strong>Meal Type:</strong> ${order.meal_type.charAt(0).toUpperCase() + order.meal_type.slice(1)}</p>
+            <p><strong>Status:</strong> ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
+          </div>
+          
+          <table class="items">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orderItems?.map(item => `
+                <tr>
+                  <td>${item.menu_item?.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>GH₵ ${item.price.toFixed(2)}</td>
+                  <td>GH₵ ${(item.quantity * item.price).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="total">
+            <p>Total Amount: GH₵ ${order.total_amount.toFixed(2)}</p>
+          </div>
+          
+          ${order.special_requests ? `<p><strong>Special Requests:</strong> ${order.special_requests}</p>` : ''}
+          
+          <div class="footer">
+            <p>Thank you for your order!</p>
+            <p>TOPP Club House - ${format(new Date(), 'PPP')}</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Create and download the receipt
+      const blob = new Blob([receiptHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${order.id.slice(0, 8)}-${format(new Date(order.order_date), 'yyyy-MM-dd')}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+    }
+  };
 
   // Combine all queries into one optimized query
   const { data: allBookings, isLoading } = useQuery({
@@ -201,11 +304,24 @@ const MyBookings: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm">
-                    <div className="flex justify-between font-medium">
-                      <span>Total:</span>
-                      <span>${order.total_amount}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <div className="flex justify-between font-medium">
+                        <span>Total:</span>
+                        <span>GH₵ {order.total_amount?.toFixed(2)}</span>
+                      </div>
                     </div>
+                    {(order.status === 'approved' || order.status === 'received' || order.status === 'delivered') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadReceipt(order)}
+                        className="ml-4"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Receipt
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
