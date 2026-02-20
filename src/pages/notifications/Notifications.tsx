@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import BackButton from '@/components/ui/back-button';
-import { Bell, Check, CheckCheck, Info, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Bell, Check, CheckCheck, Info, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import '@/styles/gradients.css';
 
 const typeIcons: Record<string, React.ReactNode> = {
   info: <Info className="h-5 w-5 text-blue-500" />,
@@ -67,6 +68,30 @@ const Notifications: React.FC = () => {
     },
   });
 
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user!.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-bell'] });
+      toast({ title: 'Notification deleted' });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: 'Failed to delete notification', 
+        description: error.message,
+        variant: 'destructive'
+      });
+    },
+  });
+
   const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
 
   if (isLoading) {
@@ -79,7 +104,7 @@ const Notifications: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen gradient-bg-indigo p-6 space-y-6">
       <BackButton />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -136,16 +161,26 @@ const Notifications: React.FC = () => {
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(notification.created_at), 'PPp')}
                   </span>
-                  {!notification.is_read && (
+                  <div className="flex gap-2">
+                    {!notification.is_read && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => markAsReadMutation.mutate(notification.id)}
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Mark as read
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
-                      size="sm" 
-                      onClick={() => markAsReadMutation.mutate(notification.id)}
+                      size="sm"
+                      onClick={() => deleteNotificationMutation.mutate(notification.id)}
                     >
-                      <Check className="h-4 w-4 mr-1" />
-                      Mark as read
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
                     </Button>
-                  )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

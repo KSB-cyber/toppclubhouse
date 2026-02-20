@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Users, Building2, Clock } from 'lucide-react';
+import { CalendarIcon, Users, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import BackButton from '@/components/ui/back-button';
+import '@/styles/gradients.css';
 
 const FacilityRequest: React.FC = () => {
   const { user } = useAuth();
@@ -44,7 +45,7 @@ const FacilityRequest: React.FC = () => {
     setIsSubmitting(true);
     try {
       const { error } = await supabase
-        .from('facility_requests')
+        .from('facility_bookings')
         .insert({
           user_id: user.id,
           booking_date: formData.bookingDate.toISOString().split('T')[0],
@@ -54,13 +55,23 @@ const FacilityRequest: React.FC = () => {
           purpose: formData.purpose || null,
           attendees: formData.attendees,
           status: 'pending',
+          club_manager_approval: 'pending',
         });
 
       if (error) throw error;
 
+      // Send notification to user
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        title: 'Facility Request Submitted',
+        message: `Your facility request for ${format(formData.bookingDate, 'MMM d, yyyy')} from ${formData.startTime} to ${formData.endTime} has been submitted and is pending approval.`,
+        type: 'info',
+        is_read: false,
+      });
+
       toast({
         title: 'Request submitted successfully',
-        description: 'Your facility request has been sent to the admin for review.',
+        description: 'Your facility request has been sent for review.',
       });
 
       navigate('/bookings');
@@ -76,7 +87,7 @@ const FacilityRequest: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen gradient-bg-blue p-6 space-y-6">
       <BackButton />
       <div>
         <h1 className="text-4xl font-display font-bold text-foreground mb-2">Request Facility</h1>
@@ -85,7 +96,7 @@ const FacilityRequest: React.FC = () => {
         </p>
       </div>
 
-      <Card className="max-w-2xl shadow-lg border-2">
+      <Card className="max-w-2xl premium-card shadow-lg border-0">
         <CardHeader className="pb-6">
           <CardTitle className="flex items-center gap-3 text-2xl font-display font-bold">
             <Building2 className="h-6 w-6 text-primary" />

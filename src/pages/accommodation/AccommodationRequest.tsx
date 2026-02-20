@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
@@ -17,6 +17,7 @@ import { CalendarIcon, Users, Bed } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import BackButton from '@/components/ui/back-button';
+import '@/styles/gradients.css';
 
 const AccommodationRequest: React.FC = () => {
   const { user } = useAuth();
@@ -33,7 +34,7 @@ const AccommodationRequest: React.FC = () => {
     departureTime: '',
     purposeOfVisit: '',
     guests: 1,
-    billingTo: '', // 'guest' or 'department'
+    billingTo: '',
   });
   const [showBillingDialog, setShowBillingDialog] = useState(false);
 
@@ -49,7 +50,7 @@ const AccommodationRequest: React.FC = () => {
     setIsSubmitting(true);
     try {
       const { error } = await supabase
-        .from('accommodation_requests')
+        .from('accommodation_bookings')
         .insert({
           user_id: user.id,
           guest_name: formData.guestName,
@@ -62,13 +63,23 @@ const AccommodationRequest: React.FC = () => {
           guests: formData.guests,
           billing_to: formData.billingTo,
           status: 'pending',
+          hr_approval: 'pending',
         });
 
       if (error) throw error;
 
+      // Send notification to user
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        title: 'Accommodation Request Submitted',
+        message: `Your accommodation request for ${formData.guestName} from ${format(formData.arrivalDate!, 'MMM d, yyyy')} to ${format(formData.departureDate!, 'MMM d, yyyy')} has been submitted and is pending HR approval.`,
+        type: 'info',
+        is_read: false,
+      });
+
       toast({
         title: 'Request submitted successfully',
-        description: 'Your accommodation request has been sent to the admin for review.',
+        description: 'Your accommodation request has been sent to HR for review.',
       });
 
       navigate('/bookings');
@@ -85,7 +96,7 @@ const AccommodationRequest: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen gradient-bg-blue p-6 space-y-6">
       <BackButton />
       <div>
         <h1 className="text-4xl font-display font-bold text-foreground mb-2">Request Accommodation</h1>
@@ -94,7 +105,7 @@ const AccommodationRequest: React.FC = () => {
         </p>
       </div>
 
-      <Card className="max-w-2xl shadow-lg border-2">
+      <Card className="max-w-2xl premium-card shadow-lg border-0">
         <CardHeader className="pb-6">
           <CardTitle className="flex items-center gap-3 text-2xl font-display font-bold">
             <Bed className="h-6 w-6 text-primary" />
@@ -258,7 +269,6 @@ const AccommodationRequest: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Billing Selection Dialog */}
       <Dialog open={showBillingDialog} onOpenChange={setShowBillingDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

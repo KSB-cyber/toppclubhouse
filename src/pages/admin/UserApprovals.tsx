@@ -45,6 +45,7 @@ import {
   User,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import '@/styles/gradients.css';
 
 const UserApprovals: React.FC = () => {
   const { user } = useAuth();
@@ -53,46 +54,47 @@ const UserApprovals: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, user_id, email, full_name, phone, department, employee_id, is_third_party, created_at')
         .eq('account_approved', false)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
 
       if (error) throw error;
       return (data || []) as Profile[];
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 3 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-  const [selectedRole, setSelectedRole] = useState<AppRole>('employee');
   const [isApproving, setIsApproving] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
   const { toast } = useToast();
 
-  const approveUser = async (profile: Profile, role: AppRole) => {
+  const approveUser = async (profile: Profile) => {
     setIsApproving(true);
     try {
-      // Update profile approval
+      // Update profile approval only
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ account_approved: true })
         .eq('id', profile.id);
 
       if (profileError) throw profileError;
-
-      // Update user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .update({ role })
-        .eq('user_id', profile.user_id);
-
-      if (roleError) throw roleError;
+      
+      // Send notification to user
+      await supabase.from('notifications').insert({
+        user_id: profile.user_id,
+        title: 'Account Approved!',
+        message: 'Your account has been approved. Please refresh your browser to access the system.',
+        type: 'account_approval',
+        is_read: false,
+      });
 
       toast({
         title: 'User approved',
-        description: `${profile.full_name} approved as ${ROLE_LABELS[role]}.`,
+        description: `${profile.full_name} has been approved. You can assign their role in User Management.`,
       });
 
       setSelectedUser(null);
@@ -153,7 +155,7 @@ const UserApprovals: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen gradient-bg-rose p-6 space-y-6 animate-fade-in">
       <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -241,10 +243,7 @@ const UserApprovals: React.FC = () => {
                       <Button
                         variant="success"
                         size="sm"
-                        onClick={() => {
-                          setSelectedUser(profile);
-                          setSelectedRole(profile.is_third_party ? 'third_party' : 'employee');
-                        }}
+                        onClick={() => setSelectedUser(profile)}
                       >
                         <CheckCircle2 className="h-4 w-4" />
                         Approve
@@ -270,18 +269,18 @@ const UserApprovals: React.FC = () => {
       <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display">Approve User & Assign Role</DialogTitle>
+            <DialogTitle className="font-display">Approve User Account</DialogTitle>
             <DialogDescription>
               Approve{' '}
               <span className="font-medium text-foreground">
                 {selectedUser?.full_name}
               </span>
-              's registration and assign their role.
+              's registration. You can assign their role later in User Management.
             </DialogDescription>
           </DialogHeader>
 
           {selectedUser && (
-            <div className="space-y-4 py-4">
+            <div className="space-y-3 py-4">
               <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-lg">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{selectedUser.email}</span>
@@ -292,23 +291,6 @@ const UserApprovals: React.FC = () => {
                   <span className="text-sm">{selectedUser.department}</span>
                 </div>
               )}
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Assign Role:</label>
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="third_party">Third Party</SelectItem>
-                    <SelectItem value="hr_office">HR Office</SelectItem>
-                    <SelectItem value="club_house_manager">Club House Manager</SelectItem>
-                    <SelectItem value="managing_director">Managing Director</SelectItem>
-                    <SelectItem value="superadmin">Super Admin (IT)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           )}
 
@@ -318,7 +300,7 @@ const UserApprovals: React.FC = () => {
             </Button>
             <Button
               variant="success"
-              onClick={() => selectedUser && approveUser(selectedUser, selectedRole)}
+              onClick={() => selectedUser && approveUser(selectedUser)}
               disabled={isApproving}
             >
               {isApproving ? (
@@ -329,7 +311,7 @@ const UserApprovals: React.FC = () => {
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  Approve & Assign Role
+                  Approve Account
                 </>
               )}
             </Button>

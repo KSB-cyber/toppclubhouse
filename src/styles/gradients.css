@@ -1,0 +1,50 @@
+/* Add to your main CSS file or import this */
+
+/* Gradient backgrounds for different pages */
+.page-gradient-orange {
+  background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #fef3c7 100%);
+  min-height: 100vh;
+}
+
+.page-gradient-purple {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #fce7f3 100%);
+  min-height: 100vh;
+}
+
+.page-gradient-blue {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0f2fe 100%);
+  min-height: 100vh;
+}
+
+.gradient-bg-blue {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #bae6fd 100%);
+}
+
+.gradient-bg-rose {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #bae6fd 100%);
+}
+
+.gradient-bg-green {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #bae6fd 100%);
+}
+
+.gradient-bg-teal {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #bae6fd 100%);
+}
+
+.gradient-bg-indigo {
+  background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 50%, #bae6fd 100%);
+}
+
+/* Enhanced card styles */
+.premium-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}

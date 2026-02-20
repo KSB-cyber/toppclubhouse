@@ -44,8 +44,9 @@ import {
   Eye,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import '@/styles/gradients.css';
 
-type BookingType = 'accommodation' | 'facility' | 'food';
+type BookingType = 'accommodation' | 'facility';
 
 const BookingApprovals: React.FC = () => {
   const { user, hasRole } = useAuth();
@@ -60,20 +61,17 @@ const BookingApprovals: React.FC = () => {
     queryFn: async () => {
       const results = {
         accommodationBookings: [],
-        facilityBookings: [],
-        foodOrders: []
+        facilityBookings: []
       };
 
       // Simplified queries without complex joins
-      const [accData, facData, foodData] = await Promise.all([
+      const [accData, facData] = await Promise.all([
         supabase.from('accommodation_bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(20),
-        supabase.from('facility_bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(20),
-        supabase.from('food_orders').select('*').eq('admin_approval', 'pending').order('created_at', { ascending: false }).limit(20)
+        supabase.from('facility_bookings').select('*').eq('status', 'pending').order('created_at', { ascending: false }).limit(20)
       ]);
 
       results.accommodationBookings = accData.data || [];
       results.facilityBookings = facData.data || [];
-      results.foodOrders = foodData.data || [];
 
       return results;
     },
@@ -82,13 +80,11 @@ const BookingApprovals: React.FC = () => {
 
   const [accommodationBookings, setAccommodationBookings] = useState<AccommodationBooking[]>([]);
   const [facilityBookings, setFacilityBookings] = useState<FacilityBooking[]>([]);
-  const [foodOrders, setFoodOrders] = useState<FoodOrder[]>([]);
 
   useEffect(() => {
     if (allBookings) {
       setAccommodationBookings(allBookings.accommodationBookings);
       setFacilityBookings(allBookings.facilityBookings);
-      setFoodOrders(allBookings.foodOrders);
     }
   }, [allBookings]);
 
@@ -102,6 +98,7 @@ const BookingApprovals: React.FC = () => {
 
     try {
       if (type === 'accommodation') {
+        const booking = accommodationBookings.find(b => b.id === id);
         await supabase
           .from('accommodation_bookings')
           .update({
@@ -112,8 +109,20 @@ const BookingApprovals: React.FC = () => {
           })
           .eq('id', id);
 
+        // Send notification to user
+        if (booking) {
+          await supabase.from('notifications').insert({
+            user_id: booking.user_id,
+            title: `Accommodation Request ${action === 'approve' ? 'Approved' : 'Declined'}`,
+            message: `Your accommodation request has been ${action === 'approve' ? 'approved' : 'declined'}.${approvalNotes ? ` Note: ${approvalNotes}` : ''}`,
+            type: action === 'approve' ? 'success' : 'warning',
+            is_read: false,
+          });
+        }
+
         setAccommodationBookings((prev) => prev.filter((b) => b.id !== id));
       } else if (type === 'facility') {
+        const booking = facilityBookings.find(b => b.id === id);
         await supabase
           .from('facility_bookings')
           .update({
@@ -124,17 +133,18 @@ const BookingApprovals: React.FC = () => {
           })
           .eq('id', id);
 
-        setFacilityBookings((prev) => prev.filter((b) => b.id !== id));
-      } else if (type === 'food') {
-        await supabase
-          .from('food_orders')
-          .update({
-            admin_approval: status,
-            approved_by: user?.id,
-          })
-          .eq('id', id);
+        // Send notification to user
+        if (booking) {
+          await supabase.from('notifications').insert({
+            user_id: booking.user_id,
+            title: `Facility Request ${action === 'approve' ? 'Approved' : 'Declined'}`,
+            message: `Your facility request has been ${action === 'approve' ? 'approved' : 'declined'}.${approvalNotes ? ` Note: ${approvalNotes}` : ''}`,
+            type: action === 'approve' ? 'success' : 'warning',
+            is_read: false,
+          });
+        }
 
-        setFoodOrders((prev) => prev.filter((o) => o.id !== id));
+        setFacilityBookings((prev) => prev.filter((b) => b.id !== id));
       }
 
       toast({
@@ -169,7 +179,7 @@ const BookingApprovals: React.FC = () => {
   };
 
   const totalPending =
-    accommodationBookings.length + facilityBookings.length + foodOrders.length;
+    accommodationBookings.length + facilityBookings.length;
 
   if (isLoading) {
     return (
@@ -181,7 +191,7 @@ const BookingApprovals: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen gradient-bg-teal p-6 space-y-6 animate-fade-in">
       <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -201,7 +211,7 @@ const BookingApprovals: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as BookingType)}>
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <TabsList className="grid w-full max-w-lg grid-cols-2">
           <TabsTrigger value="accommodation" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Accommodation
@@ -217,15 +227,6 @@ const BookingApprovals: React.FC = () => {
             {facilityBookings.length > 0 && (
               <Badge className="ml-1 bg-accent text-accent-foreground h-5 w-5 p-0 flex items-center justify-center">
                 {facilityBookings.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="food" className="flex items-center gap-2">
-            <UtensilsCrossed className="h-4 w-4" />
-            Food Orders
-            {foodOrders.length > 0 && (
-              <Badge className="ml-1 bg-accent text-accent-foreground h-5 w-5 p-0 flex items-center justify-center">
-                {foodOrders.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -369,81 +370,6 @@ const BookingApprovals: React.FC = () => {
                             size="sm"
                             onClick={() => {
                               setSelectedBooking({ ...booking, type: 'facility' });
-                            }}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Food Orders */}
-        <TabsContent value="food" className="mt-6">
-          {foodOrders.length === 0 ? (
-            <Card className="p-12 text-center">
-              <UtensilsCrossed className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                No pending food orders
-              </h3>
-              <p className="text-muted-foreground">
-                All food orders have been processed
-              </p>
-            </Card>
-          ) : (
-            <Card className="premium-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Requester</TableHead>
-                    <TableHead>Meal Type</TableHead>
-                    <TableHead>Delivery</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {foodOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">Requester Name</p>
-                          <p className="text-xs text-muted-foreground">Department</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="capitalize">{order.meal_type}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <p>{format(new Date(order.order_date), 'MMM d, yyyy')}</p>
-                          <p className="text-muted-foreground">
-                            {format(new Date(order.delivery_time), 'h:mm a')}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        ${order.total_amount}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(order.admin_approval)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() => handleApproval(order.id, 'food', 'approve')}
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedBooking({ ...order, type: 'food' });
                             }}
                           >
                             <XCircle className="h-4 w-4" />

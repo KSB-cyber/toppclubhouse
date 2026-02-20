@@ -58,6 +58,31 @@ const AdminRoleManagement: React.FC = () => {
     }
   };
 
+  const removeRole = async (userId: string, roleToRemove: AppRole) => {
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', roleToRemove);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Role removed successfully',
+      });
+
+      fetchUsers();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: `Failed to remove role: ${error.message}`,
+      });
+    }
+  };
+
   const assignRole = async (userId: string, newRole: AppRole) => {
     try {
       console.log('Assigning role:', { userId, newRole, currentRole });
@@ -141,8 +166,14 @@ const AdminRoleManagement: React.FC = () => {
                     <p className="text-sm text-muted-foreground">{user.department}</p>
                     <div className="flex gap-2 mt-2">
                       {user.roles.map((role) => (
-                        <Badge key={role} variant="secondary">
+                        <Badge 
+                          key={role} 
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-destructive/20 transition-colors"
+                          onClick={() => removeRole(user.user_id, role)}
+                        >
                           {ROLE_LABELS[role]}
+                          <span className="ml-1 text-xs">×</span>
                         </Badge>
                       ))}
                     </div>
@@ -161,9 +192,7 @@ const AdminRoleManagement: React.FC = () => {
                         <SelectItem value="hr_office">HR Office</SelectItem>
                         <SelectItem value="club_house_manager">Club House Manager</SelectItem>
                         <SelectItem value="managing_director">Managing Director</SelectItem>
-                        {currentRole === 'superadmin' && (
-                          <SelectItem value="superadmin">Super Admin (IT)</SelectItem>
-                        )}
+                        <SelectItem value="superadmin">Super Admin (IT)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

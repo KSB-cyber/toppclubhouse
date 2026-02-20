@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import BackButton from '@/components/ui/back-button';
 import { Building2, UtensilsCrossed, CalendarDays, Clock, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import '@/styles/gradients.css';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -135,7 +136,7 @@ const MyBookings: React.FC = () => {
       // Get accommodation requests (simplified)
       const { data: accData } = await supabase
         .from('accommodation_requests')
-        .select('*')
+        .select('id, guest_name, check_in_date, check_out_date, guests, billing_to, status, created_at')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -144,7 +145,7 @@ const MyBookings: React.FC = () => {
       // Get facility requests (simplified)
       const { data: facData } = await supabase
         .from('facility_requests')
-        .select('*')
+        .select('id, booking_date, start_time, end_time, attendees, status, created_at')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -153,7 +154,7 @@ const MyBookings: React.FC = () => {
       // Get food orders (simplified)
       const { data: foodData } = await supabase
         .from('food_orders')
-        .select('*')
+        .select('id, meal_type, order_date, total_amount, status, created_at')
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -162,7 +163,8 @@ const MyBookings: React.FC = () => {
       return results;
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    staleTime: 3 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {
@@ -175,7 +177,7 @@ const MyBookings: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen gradient-bg-green p-6 space-y-6">
       <BackButton />
       <div>
         <h1 className="text-3xl font-display font-bold text-foreground">My Bookings</h1>
@@ -304,24 +306,44 @@ const MyBookings: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm">
-                      <div className="flex justify-between font-medium">
-                        <span>Total:</span>
-                        <span>GH₵ {order.total_amount?.toFixed(2)}</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm">
+                        <div className="flex justify-between font-medium">
+                          <span>Total:</span>
+                          <span>GH₵ {order.total_amount?.toFixed(2)}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Order ID: #{order.id.slice(-8)}
+                        </div>
                       </div>
                     </div>
-                    {(order.status === 'approved' || order.status === 'received' || order.status === 'delivered') && (
+                    
+                    <div className="flex gap-2">
+                      {/* E-Ticket Button */}
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => downloadReceipt(order)}
-                        className="ml-4"
+                        className="flex-1"
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Download Receipt
+                        E-Ticket
                       </Button>
-                    )}
+                      
+                      {/* Receipt Button (only if delivered) */}
+                      {order.status === 'delivered' && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => downloadReceipt(order)}
+                          className="flex-1"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download Receipt
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

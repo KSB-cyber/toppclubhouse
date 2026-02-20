@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import BackButton from '@/components/ui/back-button';
 import { Plus, Pencil, Trash2, Building2 } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
+import '@/styles/gradients.css';
 
 type Facility = Tables<'facilities'>;
 
@@ -150,15 +151,17 @@ const ManageFacilities: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-96 w-full" />
+      <div className="min-h-screen gradient-bg-blue p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen gradient-bg-blue p-6 space-y-6">
       <BackButton />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -225,7 +228,7 @@ const ManageFacilities: React.FC = () => {
         </Dialog>
       </div>
 
-      <Card>
+      <Card className="premium-card shadow-xl border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />

@@ -80,6 +80,7 @@ const AppSidebar: React.FC = () => {
     // Force Club House Manager items for Ama Pokuas (temporary fix)
     if (profile?.full_name === 'Ama Pokuas' || profile?.email?.includes('ama')) {
       items.push({ title: 'Account Approvals', url: '/admin/approvals', icon: UserCheck });
+      items.push({ title: 'Food Orders', url: '/admin/food-orders', icon: UtensilsCrossed });
       items.push({ title: 'Booking Approvals', url: '/admin/booking-approvals', icon: ShieldCheck });
       items.push({ title: 'Manage Accommodations', url: '/admin/accommodations', icon: Building });
       items.push({ title: 'Manage Facilities', url: '/admin/facilities', icon: Building2 });
@@ -116,6 +117,7 @@ const AppSidebar: React.FC = () => {
     // Club House Manager - user approvals, guest rooms, menu, room availability
     if (currentRole === 'club_house_manager' || roles.includes('club_house_manager')) {
       items.push({ title: 'Account Approvals', url: '/admin/approvals', icon: UserCheck });
+      items.push({ title: 'Food Orders', url: '/admin/food-orders', icon: UtensilsCrossed });
       items.push({ title: 'Booking Approvals', url: '/admin/booking-approvals', icon: ShieldCheck });
       items.push({ title: 'Manage Accommodations', url: '/admin/accommodations', icon: Building });
       items.push({ title: 'Manage Facilities', url: '/admin/facilities', icon: Building2 });

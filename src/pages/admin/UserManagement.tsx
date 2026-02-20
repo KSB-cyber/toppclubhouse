@@ -17,11 +17,13 @@ import { Profile, AppRole } from '@/types/database';
 const roleLabels: Record<AppRole, string> = {
   admin: 'Administrator',
   hr_head: 'HR Head',
+  hr_office: 'HR Office',
   department_head: 'Department Head',
   managing_director: 'Managing Director',
   club_house_manager: 'Club House Manager',
   employee: 'Employee',
   third_party: 'Third Party',
+  superadmin: 'Super Admin (IT)',
 };
 
 const UserManagement: React.FC = () => {
@@ -37,12 +39,15 @@ const UserManagement: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, user_id, email, full_name, department, account_approved, is_third_party, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       return data as Profile[];
     },
+    staleTime: 3 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: userRoles } = useQuery({
@@ -50,30 +55,47 @@ const UserManagement: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('*');
+        .select('user_id, role');
 
       if (error) throw error;
       return data;
     },
+    staleTime: 3 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const assignRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      // Check if role already exists
-      const existingRole = userRoles?.find(r => r.user_id === userId && r.role === role);
-      if (existingRole) {
-        throw new Error('User already has this role');
-      }
+      // Delete all existing roles for this user
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
 
+      if (deleteError) throw deleteError;
+
+      // Insert the new role
       const { error } = await supabase
         .from('user_roles')
         .insert({ user_id: userId, role });
 
       if (error) throw error;
+      
+      // Send notification to user about role assignment
+      await supabase.from('notifications').insert({
+        user_id: userId,
+        title: 'New Role Assigned',
+        message: `You have been assigned the role: ${roleLabels[role]}. Please refresh your browser to see the changes.`,
+        type: 'role_assignment',
+        is_read: false,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-user-roles'] });
-      toast({ title: 'Role assigned successfully' });
+      toast({ 
+        title: 'Role assigned successfully',
+        description: 'The user has been notified and must refresh their browser to see changes.',
+      });
       setIsRoleDialogOpen(false);
     },
     onError: (error: Error) => {
@@ -196,43 +218,57 @@ const UserManagement: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Dialog open={isRoleDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                        setIsRoleDialogOpen(open);
-                        if (open) setSelectedUser(user);
-                      }}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Shield className="h-4 w-4 mr-1" />
-                            Add Role
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Assign Role to {user.full_name}</DialogTitle>
-                            <DialogDescription>
-                              Select a role to assign to this user.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {Object.entries(roleLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>{label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
-                              Cancel
-                            </Button>
-                            <Button onClick={() => assignRoleMutation.mutate({ userId: user.user_id, role: selectedRole })}>
+                      <div className="flex gap-2">
+                        <Dialog open={isRoleDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                          setIsRoleDialogOpen(open);
+                          if (open) setSelectedUser(user);
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Shield className="h-4 w-4 mr-1" />
                               Assign Role
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Assign Role to {user.full_name}</DialogTitle>
+                              <DialogDescription>
+                                Select a role to assign to this user. This will replace any existing role.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(roleLabels).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={() => assignRoleMutation.mutate({ userId: user.user_id, role: selectedRole })}>
+                                Assign Role
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                        {roles.length > 0 && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => {
+                              roles.forEach(role => removeRoleMutation.mutate({ userId: user.user_id, role }));
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove All
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

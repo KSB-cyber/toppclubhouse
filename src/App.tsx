@@ -24,6 +24,7 @@ import ManageMenu from "./pages/admin/ManageMenu";
 import ManageFacilities from "./pages/admin/ManageFacilities";
 import AdminRoleManagement from "./pages/admin/AdminRoleManagement";
 import Reports from "./pages/admin/Reports";
+import FoodOrders from "./pages/admin/FoodOrders";
 import MyBookings from "./pages/bookings/MyBookings";
 import Notifications from "./pages/notifications/Notifications";
 import Profile from "./pages/profile/Profile";
@@ -64,6 +65,7 @@ const App = () => (
               {/* Admin Routes */}
               <Route path="/admin/users" element={<UserManagement />} />
               <Route path="/admin/approvals" element={<UserApprovals />} />
+              <Route path="/admin/food-orders" element={<FoodOrders />} />
               <Route path="/admin/roles" element={<AdminRoleManagement />} />
               <Route path="/admin/accommodations" element={<ManageAccommodations />} />
               <Route path="/admin/menu" element={<ManageMenu />} />

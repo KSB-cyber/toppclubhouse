@@ -20,16 +20,20 @@ import Logo from '@/components/layout/Logo';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 
 const departments = [
-  'Commercial',
-  'HR- clinic',
-  'HR- administration',
-  'IT',
-  'Technical',
-  'Security',
-  'Safety',
-  'RSPO',
-  'Outgrower Buabin',
-  'Management',
+  'FACTORY MAINTENANCE',
+  'PROCESSING',
+  'TRANSPORT',
+  'NT',
+  'MP',
+  'HR',
+  'CLINIC',
+  'SECURITY',
+  'COMMERCIAL',
+  'TSOPP',
+  'OUTGROWER',
+  'SCHOOL',
+  'CLUB HOUSE',
+  'THIRD PARTY/CONTRACTOR',
 ];
 
 const registerSchema = z.object({

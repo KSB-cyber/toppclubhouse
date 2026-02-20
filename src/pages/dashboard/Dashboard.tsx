@@ -19,6 +19,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import '@/styles/gradients.css';
 
 const quickActions = [
   {
@@ -61,7 +62,9 @@ const getStatusBadge = (status: string) => {
 };
 
 const Dashboard: React.FC = () => {
-  const { profile, isAdmin, user } = useAuth();
+  const { profile, isAdmin, user, roles, hasRole } = useAuth();
+
+  const canManageMenu = isAdmin && (hasRole('club_house_manager') || hasRole('managing_director') || hasRole('superadmin'));
 
   // Combine related queries to reduce database calls
   const { data: dashboardData, isLoading } = useQuery({
@@ -103,7 +106,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="min-h-screen gradient-bg-blue p-6 space-y-8 animate-fade-in">
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -217,12 +220,22 @@ const Dashboard: React.FC = () => {
                 </Button>
               </Link>
               {isAdmin && (
-                <Link to="/admin/booking-approvals">
-                  <Button variant="ghost" className="w-full justify-start">
-                    <Users className="h-4 w-4 mr-2" />
-                    Manage Requests
-                  </Button>
-                </Link>
+                <>
+                  <Link to="/admin/booking-approvals">
+                    <Button variant="ghost" className="w-full justify-start">
+                      <Users className="h-4 w-4 mr-2" />
+                      Manage Requests
+                    </Button>
+                  </Link>
+                  {canManageMenu && (
+                    <Link to="/admin/menu">
+                      <Button variant="ghost" className="w-full justify-start">
+                        <UtensilsCrossed className="h-4 w-4 mr-2" />
+                        Manage Menu
+                      </Button>
+                    </Link>
+                  )}
+                </>
               )}
             </div>
           </CardContent>

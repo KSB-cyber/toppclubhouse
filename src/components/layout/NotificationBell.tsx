@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle, AlertTriangle, Info, UtensilsCrossed, Building2, UserCheck, Calendar } from 'lucide-react';
+import { Bell, CheckCircle, AlertTriangle, Info, UtensilsCrossed, Building2, UserCheck, Calendar, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,9 +65,18 @@ const NotificationBell: React.FC = () => {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
+        (payload) => {
           queryClient.invalidateQueries({ queryKey: ['notifications-bell'] });
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          
+          // If it's a role assignment or account approval, refresh the auth context
+          const notification = payload.new;
+          if (notification.type === 'role_assignment' || notification.type === 'account_approval') {
+            // Trigger a page reload after a short delay to ensure user sees the notification
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          }
         }
       )
       .subscribe();
@@ -84,6 +93,23 @@ const NotificationBell: React.FC = () => {
         .from('notifications')
         .update({ is_read: true })
         .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications-bell'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
+  // Delete notification
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user!.id);
 
       if (error) throw error;
     },
@@ -173,6 +199,17 @@ const NotificationBell: React.FC = () => {
                     {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                   </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteNotificationMutation.mutate(notification.id);
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </DropdownMenuItem>
             ))
           )}

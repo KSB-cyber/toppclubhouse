@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import BackButton from '@/components/ui/back-button';
@@ -18,13 +17,13 @@ import {
   CalendarDays,
   TrendingUp
 } from 'lucide-react';
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import '@/styles/gradients.css';
 
 const Reports: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [reportType, setReportType] = useState('all');
   const [stats, setStats] = useState({
     totalBookings: 0,
     totalRevenue: 0,
@@ -186,7 +185,7 @@ const Reports: React.FC = () => {
                 format(new Date(row.check_out_date), 'yyyy-MM-dd'),
                 row.guests,
                 row.status,
-                                `₵${revenue.toFixed(2)}`
+                `₵${revenue.toFixed(2)}`
               ].join(',');
             case 'food':
               return [
@@ -195,7 +194,7 @@ const Reports: React.FC = () => {
                 row.profile?.email || '',
                 row.profile?.department || '',
                 row.meal_type,
-                                `₵${row.total_amount.toFixed(2)}`,
+                `₵${row.total_amount.toFixed(2)}`,
                 row.status
               ].join(',');
             case 'facilities':
@@ -223,7 +222,6 @@ const Reports: React.FC = () => {
         })
       ].join('\n');
 
-      // Download file
       const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -248,24 +246,24 @@ const Reports: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen gradient-bg-blue p-6 space-y-6 animate-fade-in">
       <BackButton />
       
       <div className="flex items-center gap-3">
-        <BarChart3 className="h-6 w-6 text-primary" />
+        <BarChart3 className="h-8 w-8 text-blue-600" />
         <h1 className="text-3xl font-display font-bold">Reports & Analytics</h1>
       </div>
 
       {/* Date Range Filters */}
-      <Card>
+      <Card className="premium-card shadow-lg border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             Report Filters
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="dateFrom">From Date</Label>
               <Input
@@ -273,6 +271,7 @@ const Reports: React.FC = () => {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
+                className="mt-1"
               />
             </div>
             <div>
@@ -282,79 +281,54 @@ const Reports: React.FC = () => {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
+                className="mt-1"
               />
-            </div>
-            <div>
-              <Label htmlFor="reportType">Report Type</Label>
-              <Select value={reportType} onValueChange={setReportType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Reports</SelectItem>
-                  <SelectItem value="accommodations">Accommodations</SelectItem>
-                  <SelectItem value="food">Food Orders</SelectItem>
-                  <SelectItem value="facilities">Facilities</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="premium-card border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">₵{stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-green-600">GH₵{stats.totalRevenue.toFixed(2)}</p>
               </div>
-              <div className="text-green-500 text-2xl font-bold">₵</div>
+              <DollarSign className="h-10 w-10 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="premium-card border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Bookings</p>
                 <p className="text-2xl font-bold">{stats.totalBookings}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-blue-500" />
+              <TrendingUp className="h-10 w-10 text-blue-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="premium-card border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Users</p>
                 <p className="text-2xl font-bold">{stats.totalUsers}</p>
               </div>
-              <Users className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Accommodations</p>
-                <p className="text-2xl font-bold">{stats.accommodationBookings}</p>
-              </div>
-              <Building2 className="h-8 w-8 text-orange-500" />
+              <Users className="h-10 w-10 text-purple-500" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Download Reports */}
-      <Card>
+      <Card className="premium-card shadow-lg border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
@@ -362,43 +336,50 @@ const Reports: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button
-              onClick={() => downloadReport('accommodations')}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <Building2 className="h-4 w-4" />
-              Accommodation Report
-            </Button>
-            
-            <Button
-              onClick={() => downloadReport('food')}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <UtensilsCrossed className="h-4 w-4" />
-              Food Orders Report
-            </Button>
-            
-            <Button
-              onClick={() => downloadReport('facilities')}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              <CalendarDays className="h-4 w-4" />
-              Facilities Report
-            </Button>
-            
-            <Button
-              onClick={() => downloadReport('all')}
-              disabled={isLoading}
-              variant="hero"
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Complete Report
-            </Button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-6 w-6 text-orange-500" />
+                <span className="font-medium">Accommodation Report</span>
+              </div>
+              <Button onClick={() => downloadReport('accommodations')} disabled={isLoading} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+              <div className="flex items-center gap-3">
+                <UtensilsCrossed className="h-6 w-6 text-green-500" />
+                <span className="font-medium">Food Orders Report</span>
+              </div>
+              <Button onClick={() => downloadReport('food')} disabled={isLoading} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="h-6 w-6 text-purple-500" />
+                <span className="font-medium">Facilities Report</span>
+              </div>
+              <Button onClick={() => downloadReport('facilities')} disabled={isLoading} size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
+              <div className="flex items-center gap-3">
+                <BarChart3 className="h-6 w-6 text-blue-600" />
+                <span className="font-bold">Complete Report (All Data)</span>
+              </div>
+              <Button onClick={() => downloadReport('all')} disabled={isLoading} size="sm" variant="default">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
